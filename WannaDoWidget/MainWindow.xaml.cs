@@ -31,8 +31,6 @@ namespace WannaDoWidget
 
         private string _activeTab = "Todo";
         private readonly DispatcherTimer _expiryTimer;
-        private readonly DispatcherTimer _longPressTimer;
-        private FrameworkElement? _longPressElement;
 
         public MainWindow()
         {
@@ -43,11 +41,6 @@ namespace WannaDoWidget
             _expiryTimer.Interval = TimeSpan.FromMinutes(5);
             _expiryTimer.Tick += (s, e) => { DataManager.CheckAllExpirations(); };
             _expiryTimer.Start();
-
-            // Setup long press timer (600ms)
-            _longPressTimer = new DispatcherTimer();
-            _longPressTimer.Interval = TimeSpan.FromMilliseconds(600);
-            _longPressTimer.Tick += LongPressTimer_Tick;
 
             // Hook data manager event
             DataManager.DataUpdated += DataManager_DataUpdated;
@@ -159,7 +152,7 @@ namespace WannaDoWidget
         {
             if (_activeTab == "Todo") return TodoListView;
             if (_activeTab == "Completed") return CompletedListView;
-            return ArchivedListView;
+            return OverListView;
         }
 
         private void StartStaggeredAnimation()
@@ -168,37 +161,44 @@ namespace WannaDoWidget
             WindowTransform.Y = 0;
 
             // 1. Animate Header (immediately)
-            AnimateElement(HeaderGrid, 0, -800, 0, true);
+            double offscreenY = -this.Height;
 
-            // 2. Animate Tab Buttons (delay 30ms)
-            AnimateElement(TabButtonsGrid, 30, -800, 0, true);
-
-            // 3. Animate Input Area (delay 60ms)
-            AnimateElement(InputAreaBorder, 60, -800, 0, true);
-
-            // 4. Animate active ListBox items (delay starting at 100ms, staggered by 40ms per item)
             var activeListBox = GetActiveListBox();
             int itemCount = 0;
             if (activeListBox != null)
             {
                 // Force layout so container items exist
                 activeListBox.UpdateLayout();
-
+                DisableClipping(activeListBox);
                 itemCount = activeListBox.Items.Count;
+            }
+
+            // 1. Animate Input Area (starts first at 0ms)
+            AnimateElement(InputAreaBorder, 0, offscreenY, 0, true);
+
+            // 2. Animate active ListBox items (starts from 40ms, bottom item first)
+            if (activeListBox != null)
+            {
                 for (int i = 0; i < itemCount; i++)
                 {
                     var item = activeListBox.Items[i];
                     var container = activeListBox.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
                     if (container != null)
                     {
-                        AnimateElement(container, 100 + ((itemCount - 1 - i) * 40), -1000, 0, true);
+                        AnimateElement(container, 40 + ((itemCount - 1 - i) * 40), offscreenY, 0, true);
                     }
                 }
             }
 
-            // End animating block after cascade finishes (accounting for 500ms anim duration)
+            // 3. Animate Tab Buttons (starts after the last card starts)
+            AnimateElement(TabButtonsGrid, 40 + (itemCount * 40), offscreenY, 0, true);
+
+            // 4. Animate Header (at the very top, starts last)
+            AnimateElement(HeaderGrid, 40 + ((itemCount + 1) * 40), offscreenY, 0, true);
+
+            // End animating block after cascade finishes (last anim starts at 40+(itemCount+1)*40 and takes 600ms)
             var timer = new DispatcherTimer();
-            timer.Interval = TimeSpan.FromMilliseconds(500 + (itemCount * 40));
+            timer.Interval = TimeSpan.FromMilliseconds(700 + (itemCount * 40));
             timer.Tick += (s, ev) =>
             {
                 _isAnimating = false;
@@ -215,28 +215,34 @@ namespace WannaDoWidget
             var activeListBox = GetActiveListBox();
             int count = activeListBox?.Items.Count ?? 0;
 
+            double offscreenY = -this.Height;
+
             // Animate items sliding up & fading out (reverse stagger)
-            AnimateElement(HeaderGrid, 60, 0, -50, false);
-            AnimateElement(InputAreaBorder, 30, 0, -50, false);
-            AnimateElement(TabButtonsGrid, 0, 0, -50, false);
+            // Tab buttons slide up first, then header, then items top-to-bottom, and finally input area
+            AnimateElement(TabButtonsGrid, 0, 0, offscreenY, false);
+            AnimateElement(HeaderGrid, 30, 0, offscreenY, false);
 
             if (activeListBox != null)
             {
+                DisableClipping(activeListBox);
                 for (int i = 0; i < count; i++)
                 {
                     var item = activeListBox.Items[i];
                     var container = activeListBox.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
                     if (container != null)
                     {
-                        // Stagger going upwards
-                        AnimateElement(container, (count - 1 - i) * 15, 0, -50, false);
+                        // Stagger going upwards: top-most (i=0) leaves first
+                        AnimateElement(container, 60 + (i * 40), 0, offscreenY, false);
                     }
                 }
             }
 
-            // Set hidden at the end of the fade out
+            // Bottom input area trails after the last list item
+            AnimateElement(InputAreaBorder, 60 + (count * 40), 0, offscreenY, false);
+
+            // Set hidden at the end of the slide out (last animation starts at 60 + count*40 and takes 580ms)
             var timer = new DispatcherTimer();
-            timer.Interval = TimeSpan.FromMilliseconds(250 + count * 15);
+            timer.Interval = TimeSpan.FromMilliseconds(650 + count * 40);
             timer.Tick += (s, ev) =>
             {
                 this.Visibility = Visibility.Hidden;
@@ -263,10 +269,9 @@ namespace WannaDoWidget
                 }
             }
 
-            if (isShowing)
-            {
-                element.Opacity = 0;
-            }
+            // Force opacity to 1 (disable fade in/out)
+            element.Opacity = 1.0;
+            element.BeginAnimation(UIElement.OpacityProperty, null);
 
             var beginTime = TimeSpan.FromMilliseconds(delayMs);
 
@@ -275,23 +280,13 @@ namespace WannaDoWidget
             {
                 From = fromY,
                 To = toY,
-                Duration = new Duration(TimeSpan.FromMilliseconds(isShowing ? 500 : 250)),
+                Duration = new Duration(TimeSpan.FromMilliseconds(isShowing ? 600 : 580)),
                 BeginTime = beginTime,
                 EasingFunction = isShowing 
                     ? new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.15 } 
                     : (IEasingFunction)new ExponentialEase { EasingMode = EasingMode.EaseIn, Exponent = 4 }
             };
             tt.BeginAnimation(TranslateTransform.YProperty, daY);
-
-            // Opacity Animation
-            var daO = new DoubleAnimation
-            {
-                From = isShowing ? 0 : 1,
-                To = isShowing ? 1 : 0,
-                Duration = new Duration(TimeSpan.FromMilliseconds(isShowing ? 350 : 200)),
-                BeginTime = beginTime
-            };
-            element.BeginAnimation(UIElement.OpacityProperty, daO);
         }
 
         private void DataManager_DataUpdated(object? sender, EventArgs e)
@@ -313,7 +308,7 @@ namespace WannaDoWidget
                 .OrderByDescending(i => i.CreatedAt)
                 .ToList();
 
-            ArchivedListView.ItemsSource = items
+            OverListView.ItemsSource = items
                 .Where(i => i.State == WannaDoState.Aborted || i.State == WannaDoState.Expired)
                 .OrderByDescending(i => i.CreatedAt)
                 .ToList();
@@ -384,37 +379,117 @@ namespace WannaDoWidget
             }
         }
 
-        private void LongPressTimer_Tick(object? sender, EventArgs e)
+        private void Card_Click(object sender, MouseButtonEventArgs e)
         {
-            _longPressTimer.Stop();
-            if (_longPressElement != null && _longPressElement.ContextMenu != null)
+            if (e.OriginalSource is DependencyObject depObj && IsInActionPanel(depObj))
             {
-                _longPressElement.ContextMenu.PlacementTarget = _longPressElement;
-                _longPressElement.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
-                _longPressElement.ContextMenu.IsOpen = true;
+                return;
             }
-            _longPressElement = null;
-        }
 
-        private void Card_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            if (sender is FrameworkElement element)
+            if (sender is Border cardBorder)
             {
-                _longPressElement = element;
-                _longPressTimer.Start();
+                var actionPanel = FindVisualChild<Border>(cardBorder, "ActionPanel");
+                if (actionPanel != null)
+                {
+                    double maxWidth = double.Parse(actionPanel.Tag?.ToString() ?? "60");
+                    bool isOpened = actionPanel.Width > 0;
+                    double targetWidth = isOpened ? 0 : maxWidth;
+                    double targetOpacity = isOpened ? 0 : 1;
+
+                    if (!isOpened)
+                    {
+                        CloseAllActionPanelsExcept(cardBorder);
+                    }
+
+                    var daW = new DoubleAnimation
+                    {
+                        To = targetWidth,
+                        Duration = TimeSpan.FromMilliseconds(200),
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                    };
+                    actionPanel.BeginAnimation(FrameworkElement.WidthProperty, daW);
+
+                    var daO = new DoubleAnimation
+                    {
+                        To = targetOpacity,
+                        Duration = TimeSpan.FromMilliseconds(150),
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                    };
+                    actionPanel.BeginAnimation(UIElement.OpacityProperty, daO);
+                }
             }
         }
 
-        private void Card_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        private bool IsInActionPanel(DependencyObject obj)
         {
-            _longPressTimer.Stop();
-            _longPressElement = null;
+            while (obj != null)
+            {
+                if (obj is Border border && border.Name == "ActionPanel")
+                    return true;
+                obj = VisualTreeHelper.GetParent(obj);
+            }
+            return false;
         }
 
-        private void Card_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
+        private T? FindVisualChild<T>(DependencyObject depObj, string name) where T : DependencyObject
         {
-            _longPressTimer.Stop();
-            _longPressElement = null;
+            if (depObj == null) return null;
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(depObj); i++)
+            {
+                var child = VisualTreeHelper.GetChild(depObj, i);
+                if (child is T t && child is FrameworkElement fe && fe.Name == name)
+                    return t;
+                var childOfChild = FindVisualChild<T>(child, name);
+                if (childOfChild != null)
+                    return childOfChild;
+            }
+            return null;
+        }
+
+        private void CloseAllActionPanelsExcept(Border? exceptionCard = null)
+        {
+            ClosePanelsInListBox(TodoListView, exceptionCard);
+            ClosePanelsInListBox(CompletedListView, exceptionCard);
+            ClosePanelsInListBox(OverListView, exceptionCard);
+        }
+
+        private void ClosePanelsInListBox(System.Windows.Controls.ListBox listBox, Border? exceptionCard)
+        {
+            if (listBox == null) return;
+            for (int i = 0; i < listBox.Items.Count; i++)
+            {
+                var item = listBox.Items[i];
+                var container = listBox.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
+                if (container != null)
+                {
+                    var cardBorder = FindVisualChild<Border>(container, "CardBorder");
+                    if (cardBorder != null && cardBorder != exceptionCard)
+                    {
+                        var actionPanel = FindVisualChild<Border>(cardBorder, "ActionPanel");
+                        if (actionPanel != null)
+                        {
+                            if (actionPanel.Width > 0 || actionPanel.ActualWidth > 0)
+                            {
+                                var daW = new DoubleAnimation
+                                {
+                                    To = 0,
+                                    Duration = TimeSpan.FromMilliseconds(200),
+                                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                                };
+                                actionPanel.BeginAnimation(FrameworkElement.WidthProperty, daW);
+
+                                var daO = new DoubleAnimation
+                                {
+                                    To = 0,
+                                    Duration = TimeSpan.FromMilliseconds(150),
+                                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                                };
+                                actionPanel.BeginAnimation(UIElement.OpacityProperty, daO);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         private void TabBtn_Click(object sender, RoutedEventArgs e)
@@ -426,12 +501,12 @@ namespace WannaDoWidget
                 // Update visual tab buttons enabled state
                 TabTodoBtn.IsEnabled = (_activeTab != "Todo");
                 TabDoneBtn.IsEnabled = (_activeTab != "Completed");
-                TabOverBtn.IsEnabled = (_activeTab != "Archived");
+                TabOverBtn.IsEnabled = (_activeTab != "Over");
 
                 // Toggle visibility of ListBoxes
                 TodoListView.Visibility = (_activeTab == "Todo") ? Visibility.Visible : Visibility.Collapsed;
                 CompletedListView.Visibility = (_activeTab == "Completed") ? Visibility.Visible : Visibility.Collapsed;
-                ArchivedListView.Visibility = (_activeTab == "Archived") ? Visibility.Visible : Visibility.Collapsed;
+                OverListView.Visibility = (_activeTab == "Over") ? Visibility.Visible : Visibility.Collapsed;
             }
         }
 
@@ -450,6 +525,18 @@ namespace WannaDoWidget
             else
             {
                 base.OnClosing(e);
+            }
+        }
+
+        private void DisableClipping(DependencyObject obj)
+        {
+            if (obj is FrameworkElement fe)
+            {
+                fe.ClipToBounds = false;
+            }
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(obj); i++)
+            {
+                DisableClipping(VisualTreeHelper.GetChild(obj, i));
             }
         }
 

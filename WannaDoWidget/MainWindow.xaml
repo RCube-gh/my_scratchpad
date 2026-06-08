@@ -114,9 +114,26 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- ListBox Style without ScrollViewer for zero clipping -->
+        <Style x:Key="NoClipListBoxStyle" TargetType="ListBox">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBox">
+                        <ItemsPresenter />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemsPanel">
+                <Setter.Value>
+                    <ItemsPanelTemplate>
+                        <StackPanel ClipToBounds="False" />
+                    </ItemsPanelTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
-    <Grid x:Name="RootGrid" Background="Transparent" Margin="16,24,16,16">
+    <Grid x:Name="RootGrid" Background="Transparent" Margin="16,24,16,16" ClipToBounds="False">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" /> <!-- Header -->
             <RowDefinition Height="Auto" /> <!-- Tabs (Row 1) -->
@@ -187,74 +204,116 @@
             <!-- Styled Tab Buttons with Cyber accents -->
             <Button x:Name="TabTodoBtn" Grid.Column="0" Content="To Do" Click="TabBtn_Click" Tag="Todo" IsEnabled="False" Margin="0,0,4,0"/>
             <Button x:Name="TabDoneBtn" Grid.Column="1" Content="Done" Click="TabBtn_Click" Tag="Completed" Margin="2,0,2,0"/>
-            <Button x:Name="TabOverBtn" Grid.Column="2" Content="Archived" Click="TabBtn_Click" Tag="Archived" Margin="4,0,0,0"/>
+            <Button x:Name="TabOverBtn" Grid.Column="2" Content="Over" Click="TabBtn_Click" Tag="Over" Margin="4,0,0,0"/>
         </Grid>
 
         <!-- 3. Lists Container -->
-        <Grid Grid.Row="2">
+        <Grid Grid.Row="2" ClipToBounds="False">
             <!-- 4a. TODO List -->
             <ListBox x:Name="TodoListView" 
+                      Style="{StaticResource NoClipListBoxStyle}"
                       Background="Transparent" 
                       BorderThickness="0" 
-                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                       HorizontalContentAlignment="Stretch">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <!-- Cyber styled card. Hook MouseEvents for Long-Press -->
-                        <Border Style="{StaticResource CyberCardStyle}" 
+                        <!-- Cyber styled card. Override Padding to 0 so the Grid clips at card boundaries -->
+                        <Border x:Name="CardBorder"
+                                Style="{StaticResource CyberCardStyle}" 
+                                Padding="0"
                                 Background="#BD05122E" 
                                 BorderBrush="#00F0FF"
-                                PreviewMouseLeftButtonDown="Card_PreviewMouseLeftButtonDown"
-                                PreviewMouseLeftButtonUp="Card_PreviewMouseLeftButtonUp"
-                                MouseLeave="Card_MouseLeave"
+                                PreviewMouseLeftButtonDown="Card_Click"
                                 Cursor="Hand"
-                                ToolTip="Right-click or long-press for menu">
-                            
-                            <!-- Context Menu attached directly -->
-                            <Border.ContextMenu>
-                                <ContextMenu>
-                                    <MenuItem Header="✓ Complete" Click="CompleteButton_Click" Tag="{Binding Id}"/>
-                                    <MenuItem Header="✕ Abort" Click="AbortButton_Click" Tag="{Binding Id}"/>
-                                </ContextMenu>
-                            </Border.ContextMenu>
-                            
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="*" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
+                                ToolTip="Click to show action menu">
+                            <Grid ClipToBounds="True">
+                                <!-- Main Card Content (Margin = Card Padding) -->
+                                <Grid Margin="18,16">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
 
-                                <!-- Memo -->
-                                <TextBlock Grid.Row="0"
-                                           Text="{Binding Memo}" 
-                                           TextWrapping="Wrap" 
-                                           FontSize="15" 
-                                           FontWeight="SemiBold" 
-                                           Foreground="White" 
-                                           VerticalAlignment="Top"
-                                           Margin="0,0,0,10"/>
-                                
-                                <!-- Metadata Footer Row -->
-                                <Grid Grid.Row="1" Margin="0,4,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
+                                    <!-- Memo -->
+                                    <TextBlock Grid.Row="0"
+                                               Text="{Binding Memo}" 
+                                               TextWrapping="Wrap" 
+                                               FontSize="15" 
+                                               FontWeight="SemiBold" 
+                                               Foreground="White" 
+                                               VerticalAlignment="Top"
+                                               Margin="0,0,0,10"/>
                                     
-                                    <!-- Created Time -->
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="[SYS_INIT " FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
-                                        <TextBlock Text="{Binding CreatedAt, Converter={StaticResource DateFormatConverter}}" FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
-                                        <TextBlock Text="]" FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
-                                    </StackPanel>
-                                    
-                                    <!-- Limit Badge -->
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Visibility="{Binding DueDate, Converter={StaticResource NullToVisibilityConverter}}">
-                                        <TextBlock Text="[LIMIT " FontSize="10" Foreground="#00F0FF" FontWeight="Bold"/>
-                                        <TextBlock Text="{Binding DueDate, Converter={StaticResource DateFormatConverter}}" FontSize="10" Foreground="#00F0FF" FontWeight="Bold"/>
-                                        <TextBlock Text="]" FontSize="10" Foreground="#00F0FF" FontWeight="Bold"/>
-                                    </StackPanel>
+                                    <!-- Metadata Footer Row -->
+                                    <Grid Grid.Row="1" Margin="0,4,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <!-- Created Time -->
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="[SYS_INIT " FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
+                                            <TextBlock Text="{Binding CreatedAt, Converter={StaticResource DateFormatConverter}}" FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
+                                            <TextBlock Text="]" FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
+                                        </StackPanel>
+                                        
+                                        <!-- Limit Badge -->
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Visibility="{Binding DueDate, Converter={StaticResource NullToVisibilityConverter}}">
+                                            <TextBlock Text="[LIMIT " FontSize="10" Foreground="#00F0FF" FontWeight="Bold"/>
+                                            <TextBlock Text="{Binding DueDate, Converter={StaticResource DateFormatConverter}}" FontSize="10" Foreground="#00F0FF" FontWeight="Bold"/>
+                                            <TextBlock Text="]" FontSize="10" Foreground="#00F0FF" FontWeight="Bold"/>
+                                        </StackPanel>
+                                    </Grid>
                                 </Grid>
+
+                                <!-- Slide-in Action Drawer -->
+                                <Border x:Name="ActionPanel" 
+                                        HorizontalAlignment="Right" 
+                                        Width="0" 
+                                        Tag="120"
+                                        Background="#E505122E" 
+                                        BorderBrush="#00F0FF"
+                                        BorderThickness="1,0,0,0"
+                                        CornerRadius="0,8,8,0"
+                                        Opacity="0">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <!-- Complete Button -->
+                                        <Button Grid.Column="0" Click="CompleteButton_Click" Tag="{Binding Id}" Background="Transparent" BorderBrush="Transparent" Cursor="Hand" ToolTip="Complete">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="btnBorder" Background="Transparent">
+                                                        <TextBlock Text="✓" Foreground="#00FF66" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="btnBorder" Property="Background" Value="#2200FF66"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+                                        <!-- Abort Button -->
+                                        <Button Grid.Column="1" Click="AbortButton_Click" Tag="{Binding Id}" Background="Transparent" BorderBrush="Transparent" Cursor="Hand" ToolTip="Abort">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="btnBorder" Background="Transparent" CornerRadius="0,8,8,0">
+                                                        <TextBlock Text="✕" Foreground="#FF0055" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="btnBorder" Property="Background" Value="#22FF0055"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+                                    </Grid>
+                                </Border>
                             </Grid>
                         </Border>
                     </DataTemplate>
@@ -263,62 +322,88 @@
 
             <!-- 4b. COMPLETED List -->
             <ListBox x:Name="CompletedListView" 
+                      Style="{StaticResource NoClipListBoxStyle}"
                       Background="Transparent" 
                       BorderThickness="0" 
                       Visibility="Collapsed"
-                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                       HorizontalContentAlignment="Stretch">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <Border Style="{StaticResource CyberCardStyle}" 
+                        <Border x:Name="CardBorder"
+                                Style="{StaticResource CyberCardStyle}" 
+                                Padding="0"
                                 Background="#BD031C10" 
                                 BorderBrush="#00FF66"
-                                PreviewMouseLeftButtonDown="Card_PreviewMouseLeftButtonDown"
-                                PreviewMouseLeftButtonUp="Card_PreviewMouseLeftButtonUp"
-                                MouseLeave="Card_MouseLeave"
-                                Cursor="Hand">
+                                PreviewMouseLeftButtonDown="Card_Click"
+                                Cursor="Hand"
+                                ToolTip="Click to show actions">
                             <Border.Effect>
                                 <DropShadowEffect Color="#00FF66" Direction="270" ShadowDepth="1" BlurRadius="12" Opacity="0.25"/>
                             </Border.Effect>
-                            <Border.ContextMenu>
-                                <ContextMenu>
-                                    <MenuItem Header="🗑 Delete" Click="DeleteButton_Click" Tag="{Binding Id}"/>
-                                </ContextMenu>
-                            </Border.ContextMenu>
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="*" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
+                            <Grid ClipToBounds="True">
+                                <!-- Main Content (Margin = Card Padding) -->
+                                <Grid Margin="18,16">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
 
-                                <TextBlock Grid.Row="0"
-                                           Text="{Binding Memo}" 
-                                           TextWrapping="Wrap" 
-                                           FontSize="15" 
-                                           FontWeight="SemiBold" 
-                                           Foreground="#85B29B" 
-                                           TextDecorations="Strikethrough" 
-                                           VerticalAlignment="Top"
-                                           Margin="0,0,0,10"/>
+                                    <TextBlock Grid.Row="0"
+                                               Text="{Binding Memo}" 
+                                               TextWrapping="Wrap" 
+                                               FontSize="15" 
+                                               FontWeight="SemiBold" 
+                                               Foreground="#85B29B" 
+                                               TextDecorations="Strikethrough" 
+                                               VerticalAlignment="Top"
+                                               Margin="0,0,0,10"/>
 
-                                <!-- Metadata Footer -->
-                                <Grid Grid.Row="1" Margin="0,4,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    
-                                    <!-- Created Time -->
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="[SYS_INIT " FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
-                                        <TextBlock Text="{Binding CreatedAt, Converter={StaticResource DateFormatConverter}}" FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
-                                        <TextBlock Text="]" FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
-                                    </StackPanel>
+                                    <!-- Metadata Footer -->
+                                    <Grid Grid.Row="1" Margin="0,4,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <!-- Created Time -->
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="[SYS_INIT " FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
+                                            <TextBlock Text="{Binding CreatedAt, Converter={StaticResource DateFormatConverter}}" FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
+                                            <TextBlock Text="]" FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
+                                        </StackPanel>
 
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                        <TextBlock Text="[MISSION_ACCOMPLISHED]" FontSize="10" Foreground="#00FF66" FontWeight="Bold"/>
-                                    </StackPanel>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                            <TextBlock Text="[MISSION_ACCOMPLISHED]" FontSize="10" Foreground="#00FF66" FontWeight="Bold"/>
+                                        </StackPanel>
+                                    </Grid>
                                 </Grid>
+
+                                <!-- Slide-in Action Drawer (Delete only, Width=60) -->
+                                <Border x:Name="ActionPanel" 
+                                        HorizontalAlignment="Right" 
+                                        Width="0" 
+                                        Tag="60"
+                                        Background="#E5031C10" 
+                                        BorderBrush="#00FF66"
+                                        BorderThickness="1,0,0,0"
+                                        CornerRadius="0,8,8,0"
+                                        Opacity="0">
+                                    <!-- Delete Button -->
+                                    <Button Click="DeleteButton_Click" Tag="{Binding Id}" Background="Transparent" BorderBrush="Transparent" Cursor="Hand" ToolTip="Delete">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="btnBorder" Background="Transparent" CornerRadius="0,8,8,0">
+                                                    <TextBlock Text="🗑" Foreground="#FF5555" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="btnBorder" Property="Background" Value="#22FF5555"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
+                                </Border>
                             </Grid>
                         </Border>
                     </DataTemplate>
@@ -326,64 +411,90 @@
             </ListBox>
 
             <!-- 4c. ARCHIVED / EXPIRED List -->
-            <ListBox x:Name="ArchivedListView" 
+            <ListBox x:Name="OverListView" 
+                      Style="{StaticResource NoClipListBoxStyle}"
                       Background="Transparent" 
                       BorderThickness="0" 
                       Visibility="Collapsed"
-                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                       HorizontalContentAlignment="Stretch">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <Border Style="{StaticResource CyberCardStyle}" 
+                        <Border x:Name="CardBorder"
+                                Style="{StaticResource CyberCardStyle}" 
+                                Padding="0"
                                 Background="#BD1C0808" 
                                 BorderBrush="#FF0055"
-                                PreviewMouseLeftButtonDown="Card_PreviewMouseLeftButtonDown"
-                                PreviewMouseLeftButtonUp="Card_PreviewMouseLeftButtonUp"
-                                MouseLeave="Card_MouseLeave"
-                                Cursor="Hand">
+                                PreviewMouseLeftButtonDown="Card_Click"
+                                Cursor="Hand"
+                                ToolTip="Click to show actions">
                             <Border.Effect>
                                 <DropShadowEffect Color="#FF0055" Direction="270" ShadowDepth="1" BlurRadius="12" Opacity="0.25"/>
                             </Border.Effect>
-                            <Border.ContextMenu>
-                                <ContextMenu>
-                                    <MenuItem Header="🗑 Delete" Click="DeleteButton_Click" Tag="{Binding Id}"/>
-                                </ContextMenu>
-                            </Border.ContextMenu>
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="*" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
+                            <Grid ClipToBounds="True">
+                                <!-- Main Content (Margin = Card Padding) -->
+                                <Grid Margin="18,16">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
 
-                                <TextBlock Grid.Row="0"
-                                           Text="{Binding Memo}" 
-                                           TextWrapping="Wrap" 
-                                           FontSize="15" 
-                                           FontWeight="SemiBold" 
-                                           Foreground="#C5A5A5" 
-                                           VerticalAlignment="Top"
-                                           Margin="0,0,0,10"/>
-                                
-                                <!-- Metadata Footer -->
-                                <Grid Grid.Row="1" Margin="0,4,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Row="0"
+                                               Text="{Binding Memo}" 
+                                               TextWrapping="Wrap" 
+                                               FontSize="15" 
+                                               FontWeight="SemiBold" 
+                                               Foreground="#C5A5A5" 
+                                               VerticalAlignment="Top"
+                                               Margin="0,0,0,10"/>
                                     
-                                    <!-- Created Time -->
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="[SYS_INIT " FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
-                                        <TextBlock Text="{Binding CreatedAt, Converter={StaticResource DateFormatConverter}}" FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
-                                        <TextBlock Text="]" FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
-                                    </StackPanel>
-                                    
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                        <TextBlock Text="[STATUS: " FontSize="10" Foreground="#FF0055" FontWeight="Bold"/>
-                                        <TextBlock Text="{Binding State, Converter={StaticResource StateTextConverter}}" FontSize="10" Foreground="#FF0055" FontWeight="Bold"/>
-                                        <TextBlock Text="]" FontSize="10" Foreground="#FF0055" FontWeight="Bold"/>
-                                    </StackPanel>
+                                    <!-- Metadata Footer -->
+                                    <Grid Grid.Row="1" Margin="0,4,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <!-- Created Time -->
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="[SYS_INIT " FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
+                                            <TextBlock Text="{Binding CreatedAt, Converter={StaticResource DateFormatConverter}}" FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
+                                            <TextBlock Text="]" FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
+                                        </StackPanel>
+                                        
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                            <TextBlock Text="[STATUS: " FontSize="10" Foreground="#FF0055" FontWeight="Bold"/>
+                                            <TextBlock Text="{Binding State, Converter={StaticResource StateTextConverter}}" FontSize="10" Foreground="#FF0055" FontWeight="Bold"/>
+                                            <TextBlock Text="]" FontSize="10" Foreground="#FF0055" FontWeight="Bold"/>
+                                        </StackPanel>
+                                    </Grid>
                                 </Grid>
+
+                                <!-- Slide-in Action Drawer (Delete only, Width=60) -->
+                                <Border x:Name="ActionPanel" 
+                                        HorizontalAlignment="Right" 
+                                        Width="0" 
+                                        Tag="60"
+                                        Background="#E51C0808" 
+                                        BorderBrush="#FF0055"
+                                        BorderThickness="1,0,0,0"
+                                        CornerRadius="0,8,8,0"
+                                        Opacity="0">
+                                    <!-- Delete Button -->
+                                    <Button Click="DeleteButton_Click" Tag="{Binding Id}" Background="Transparent" BorderBrush="Transparent" Cursor="Hand" ToolTip="Delete">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="btnBorder" Background="Transparent" CornerRadius="0,8,8,0">
+                                                    <TextBlock Text="🗑" Foreground="#FF5555" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="btnBorder" Property="Background" Value="#22FF5555"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
+                                </Border>
                             </Grid>
                         </Border>
                     </DataTemplate>
