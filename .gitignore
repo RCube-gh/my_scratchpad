@@ -1,0 +1,15 @@
+# User files
+.agent/
+trash/
+memo.txt
+crash.txt
+
+# .NET / VS / VS Code build outputs
+bin/
+obj/
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
