@@ -658,7 +658,7 @@
                                 <!-- Slide-in Action Drawer -->
                                 <Border x:Name="ActionPanel" 
                                         HorizontalAlignment="Right" 
-                                        Width="120"
+                                        Width="0"
                                         Tag="120"
                                         Background="#E505122E" 
                                         BorderBrush="#00F0FF"
@@ -666,10 +666,7 @@
                                         CornerRadius="0,8,8,0"
                                         Opacity="0"
                                         IsHitTestVisible="False">
-                                    <Grid x:Name="ActionContent">
-                                        <Grid.RenderTransform>
-                                            <TranslateTransform X="16"/>
-                                        </Grid.RenderTransform>
+                                    <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="*" />
@@ -771,7 +768,7 @@
                                 <!-- Slide-in Action Drawer (Delete only, Width=60) -->
                                 <Border x:Name="ActionPanel" 
                                         HorizontalAlignment="Right" 
-                                        Width="60"
+                                        Width="0"
                                         Tag="60"
                                         Background="#E5031C10" 
                                         BorderBrush="#00FF66"
@@ -779,10 +776,7 @@
                                         CornerRadius="0,8,8,0"
                                         Opacity="0"
                                         IsHitTestVisible="False">
-                                    <Grid x:Name="ActionContent">
-                                        <Grid.RenderTransform>
-                                            <TranslateTransform X="16"/>
-                                        </Grid.RenderTransform>
+                                    <Grid>
                                         <!-- Delete Button -->
                                         <Button Click="DeleteButton_Click" Tag="{Binding Id}" Background="Transparent" BorderBrush="Transparent" Cursor="Hand" ToolTip="Delete">
                                             <Button.Template>
@@ -866,7 +860,7 @@
                                 <!-- Slide-in Action Drawer (Delete only, Width=60) -->
                                 <Border x:Name="ActionPanel" 
                                         HorizontalAlignment="Right" 
-                                        Width="60"
+                                        Width="0"
                                         Tag="60"
                                         Background="#E51C0808" 
                                         BorderBrush="#FF0055"
@@ -874,10 +868,7 @@
                                         CornerRadius="0,8,8,0"
                                         Opacity="0"
                                         IsHitTestVisible="False">
-                                    <Grid x:Name="ActionContent">
-                                        <Grid.RenderTransform>
-                                            <TranslateTransform X="16"/>
-                                        </Grid.RenderTransform>
+                                    <Grid>
                                         <!-- Delete Button -->
                                         <Button Click="DeleteButton_Click" Tag="{Binding Id}" Background="Transparent" BorderBrush="Transparent" Cursor="Hand" ToolTip="Delete">
                                             <Button.Template>

@@ -531,30 +531,17 @@ namespace WannaDoWidget
                     continue;
                 }
 
+                double currentWidth = actionPanel.ActualWidth;
+                double currentOpacity = actionPanel.Opacity;
+
+                actionPanel.BeginAnimation(FrameworkElement.WidthProperty, null);
                 actionPanel.BeginAnimation(UIElement.OpacityProperty, null);
-
-                var actionContent = FindVisualChild<FrameworkElement>(
-                    actionPanel,
-                    "ActionContent");
-                if (actionContent != null)
-                {
-                    var contentTransform = GetMutableTranslateTransform(
-                        actionContent,
-                        16);
-                    contentTransform.BeginAnimation(
-                        TranslateTransform.XProperty,
-                        null);
-
-                    if (!double.IsFinite(contentTransform.X))
-                    {
-                        contentTransform.X = 16;
-                    }
-                }
-
-                if (!double.IsFinite(actionPanel.Opacity))
-                {
-                    actionPanel.Opacity = 0;
-                }
+                actionPanel.Width = double.IsFinite(currentWidth)
+                    ? currentWidth
+                    : 0;
+                actionPanel.Opacity = double.IsFinite(currentOpacity)
+                    ? currentOpacity
+                    : 0;
             }
         }
 
@@ -584,37 +571,30 @@ namespace WannaDoWidget
 
         private void AnimateActionPanel(Border actionPanel, bool open)
         {
-            const double slideDistance = 16;
-            var actionContent = FindVisualChild<FrameworkElement>(
-                actionPanel,
-                "ActionContent");
-            if (actionContent == null)
-            {
-                return;
-            }
+            double panelWidth = double.TryParse(
+                actionPanel.Tag?.ToString(),
+                out double taggedWidth)
+                    ? taggedWidth
+                    : 60;
 
-            var transform = GetMutableTranslateTransform(
-                actionContent,
-                slideDistance);
-
-            double currentX = transform.X;
+            double currentWidth = actionPanel.ActualWidth;
             double currentOpacity = actionPanel.Opacity;
 
-            transform.BeginAnimation(TranslateTransform.XProperty, null);
+            actionPanel.BeginAnimation(FrameworkElement.WidthProperty, null);
             actionPanel.BeginAnimation(UIElement.OpacityProperty, null);
 
-            transform.X = double.IsFinite(currentX)
-                ? currentX
-                : slideDistance;
+            actionPanel.Width = double.IsFinite(currentWidth)
+                ? currentWidth
+                : 0;
             actionPanel.Opacity = double.IsFinite(currentOpacity)
                 ? currentOpacity
                 : 0;
             actionPanel.IsHitTestVisible = open;
 
-            var slideAnimation = new DoubleAnimation
+            var widthAnimation = new DoubleAnimation
             {
-                From = transform.X,
-                To = open ? 0 : slideDistance,
+                From = actionPanel.Width,
+                To = open ? panelWidth : 0,
                 Duration = TimeSpan.FromMilliseconds(220),
                 EasingFunction = new CubicEase
                 {
@@ -635,10 +615,12 @@ namespace WannaDoWidget
                 FillBehavior = FillBehavior.Stop
             };
 
-            slideAnimation.Completed += (s, e) =>
+            widthAnimation.Completed += (s, e) =>
             {
-                transform.BeginAnimation(TranslateTransform.XProperty, null);
-                transform.X = open ? 0 : slideDistance;
+                actionPanel.BeginAnimation(
+                    FrameworkElement.WidthProperty,
+                    null);
+                actionPanel.Width = open ? panelWidth : 0;
             };
 
             fadeAnimation.Completed += (s, e) =>
@@ -647,33 +629,12 @@ namespace WannaDoWidget
                 actionPanel.Opacity = open ? 1 : 0;
             };
 
-            transform.BeginAnimation(
-                TranslateTransform.XProperty,
-                slideAnimation);
+            actionPanel.BeginAnimation(
+                FrameworkElement.WidthProperty,
+                widthAnimation);
             actionPanel.BeginAnimation(
                 UIElement.OpacityProperty,
                 fadeAnimation);
-        }
-
-        private TranslateTransform GetMutableTranslateTransform(
-            FrameworkElement element,
-            double initialX)
-        {
-            if (element.RenderTransform is TranslateTransform existing)
-            {
-                if (!existing.IsFrozen)
-                {
-                    return existing;
-                }
-
-                var clone = existing.CloneCurrentValue();
-                element.RenderTransform = clone;
-                return clone;
-            }
-
-            var transform = new TranslateTransform(initialX, 0);
-            element.RenderTransform = transform;
-            return transform;
         }
 
         private bool IsInActionPanel(DependencyObject obj)
