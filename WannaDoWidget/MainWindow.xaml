@@ -666,10 +666,10 @@
                                         CornerRadius="0,8,8,0"
                                         Opacity="0"
                                         IsHitTestVisible="False">
-                                    <Border.RenderTransform>
-                                        <TranslateTransform X="120"/>
-                                    </Border.RenderTransform>
-                                    <Grid>
+                                    <Grid x:Name="ActionContent">
+                                        <Grid.RenderTransform>
+                                            <TranslateTransform X="16"/>
+                                        </Grid.RenderTransform>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="*" />
@@ -779,24 +779,26 @@
                                         CornerRadius="0,8,8,0"
                                         Opacity="0"
                                         IsHitTestVisible="False">
-                                    <Border.RenderTransform>
-                                        <TranslateTransform X="60"/>
-                                    </Border.RenderTransform>
-                                    <!-- Delete Button -->
-                                    <Button Click="DeleteButton_Click" Tag="{Binding Id}" Background="Transparent" BorderBrush="Transparent" Cursor="Hand" ToolTip="Delete">
-                                        <Button.Template>
-                                            <ControlTemplate TargetType="Button">
-                                                <Border x:Name="btnBorder" Background="Transparent" CornerRadius="0,8,8,0">
-                                                    <TextBlock Text="🗑" Foreground="#FF5555" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                </Border>
-                                                <ControlTemplate.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="btnBorder" Property="Background" Value="#22FF5555"/>
-                                                    </Trigger>
-                                                </ControlTemplate.Triggers>
-                                            </ControlTemplate>
-                                        </Button.Template>
-                                    </Button>
+                                    <Grid x:Name="ActionContent">
+                                        <Grid.RenderTransform>
+                                            <TranslateTransform X="16"/>
+                                        </Grid.RenderTransform>
+                                        <!-- Delete Button -->
+                                        <Button Click="DeleteButton_Click" Tag="{Binding Id}" Background="Transparent" BorderBrush="Transparent" Cursor="Hand" ToolTip="Delete">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="btnBorder" Background="Transparent" CornerRadius="0,8,8,0">
+                                                        <TextBlock Text="🗑" Foreground="#FF5555" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="btnBorder" Property="Background" Value="#22FF5555"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+                                    </Grid>
                                 </Border>
                             </Grid>
                         </Border>
@@ -872,24 +874,26 @@
                                         CornerRadius="0,8,8,0"
                                         Opacity="0"
                                         IsHitTestVisible="False">
-                                    <Border.RenderTransform>
-                                        <TranslateTransform X="60"/>
-                                    </Border.RenderTransform>
-                                    <!-- Delete Button -->
-                                    <Button Click="DeleteButton_Click" Tag="{Binding Id}" Background="Transparent" BorderBrush="Transparent" Cursor="Hand" ToolTip="Delete">
-                                        <Button.Template>
-                                            <ControlTemplate TargetType="Button">
-                                                <Border x:Name="btnBorder" Background="Transparent" CornerRadius="0,8,8,0">
-                                                    <TextBlock Text="🗑" Foreground="#FF5555" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                </Border>
-                                                <ControlTemplate.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="btnBorder" Property="Background" Value="#22FF5555"/>
-                                                    </Trigger>
-                                                </ControlTemplate.Triggers>
-                                            </ControlTemplate>
-                                        </Button.Template>
-                                    </Button>
+                                    <Grid x:Name="ActionContent">
+                                        <Grid.RenderTransform>
+                                            <TranslateTransform X="16"/>
+                                        </Grid.RenderTransform>
+                                        <!-- Delete Button -->
+                                        <Button Click="DeleteButton_Click" Tag="{Binding Id}" Background="Transparent" BorderBrush="Transparent" Cursor="Hand" ToolTip="Delete">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="btnBorder" Background="Transparent" CornerRadius="0,8,8,0">
+                                                        <TextBlock Text="🗑" Foreground="#FF5555" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="btnBorder" Property="Background" Value="#22FF5555"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+                                    </Grid>
                                 </Border>
                             </Grid>
                         </Border>

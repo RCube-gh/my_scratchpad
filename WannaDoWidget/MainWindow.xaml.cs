@@ -533,16 +533,22 @@ namespace WannaDoWidget
 
                 actionPanel.BeginAnimation(UIElement.OpacityProperty, null);
 
-                var panelTransform = GetMutableActionPanelTransform(
+                var actionContent = FindVisualChild<FrameworkElement>(
                     actionPanel,
-                    actionPanel.Width);
-                panelTransform.BeginAnimation(
-                    TranslateTransform.XProperty,
-                    null);
-
-                if (!double.IsFinite(panelTransform.X))
+                    "ActionContent");
+                if (actionContent != null)
                 {
-                    panelTransform.X = actionPanel.Width;
+                    var contentTransform = GetMutableTranslateTransform(
+                        actionContent,
+                        16);
+                    contentTransform.BeginAnimation(
+                        TranslateTransform.XProperty,
+                        null);
+
+                    if (!double.IsFinite(contentTransform.X))
+                    {
+                        contentTransform.X = 16;
+                    }
                 }
 
                 if (!double.IsFinite(actionPanel.Opacity))
@@ -578,15 +584,18 @@ namespace WannaDoWidget
 
         private void AnimateActionPanel(Border actionPanel, bool open)
         {
-            double panelWidth = double.TryParse(
-                actionPanel.Tag?.ToString(),
-                out double taggedWidth)
-                    ? taggedWidth
-                    : 60;
-
-            var transform = GetMutableActionPanelTransform(
+            const double slideDistance = 16;
+            var actionContent = FindVisualChild<FrameworkElement>(
                 actionPanel,
-                panelWidth);
+                "ActionContent");
+            if (actionContent == null)
+            {
+                return;
+            }
+
+            var transform = GetMutableTranslateTransform(
+                actionContent,
+                slideDistance);
 
             double currentX = transform.X;
             double currentOpacity = actionPanel.Opacity;
@@ -596,7 +605,7 @@ namespace WannaDoWidget
 
             transform.X = double.IsFinite(currentX)
                 ? currentX
-                : panelWidth;
+                : slideDistance;
             actionPanel.Opacity = double.IsFinite(currentOpacity)
                 ? currentOpacity
                 : 0;
@@ -605,7 +614,7 @@ namespace WannaDoWidget
             var slideAnimation = new DoubleAnimation
             {
                 From = transform.X,
-                To = open ? 0 : panelWidth,
+                To = open ? 0 : slideDistance,
                 Duration = TimeSpan.FromMilliseconds(220),
                 EasingFunction = new CubicEase
                 {
@@ -629,7 +638,7 @@ namespace WannaDoWidget
             slideAnimation.Completed += (s, e) =>
             {
                 transform.BeginAnimation(TranslateTransform.XProperty, null);
-                transform.X = open ? 0 : panelWidth;
+                transform.X = open ? 0 : slideDistance;
             };
 
             fadeAnimation.Completed += (s, e) =>
@@ -646,11 +655,11 @@ namespace WannaDoWidget
                 fadeAnimation);
         }
 
-        private TranslateTransform GetMutableActionPanelTransform(
-            Border actionPanel,
+        private TranslateTransform GetMutableTranslateTransform(
+            FrameworkElement element,
             double initialX)
         {
-            if (actionPanel.RenderTransform is TranslateTransform existing)
+            if (element.RenderTransform is TranslateTransform existing)
             {
                 if (!existing.IsFrozen)
                 {
@@ -658,12 +667,12 @@ namespace WannaDoWidget
                 }
 
                 var clone = existing.CloneCurrentValue();
-                actionPanel.RenderTransform = clone;
+                element.RenderTransform = clone;
                 return clone;
             }
 
             var transform = new TranslateTransform(initialX, 0);
-            actionPanel.RenderTransform = transform;
+            element.RenderTransform = transform;
             return transform;
         }
 
