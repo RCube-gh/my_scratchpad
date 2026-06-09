@@ -176,7 +176,7 @@ namespace WannaDoWidget
             // 1. Animate Input Area (starts first at 0ms)
             AnimateElement(InputAreaBorder, 0, offscreenY, 0, true);
 
-            // 2. Animate active ListBox items (starts from 40ms, bottom item first)
+            // 4. Animate active ListBox items (starts from 40ms, bottom item first)
             if (activeListBox != null)
             {
                 for (int i = 0; i < itemCount; i++)
@@ -185,7 +185,9 @@ namespace WannaDoWidget
                     var container = activeListBox.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
                     if (container != null)
                     {
-                        AnimateElement(container, 40 + ((itemCount - 1 - i) * 40), offscreenY, 0, true);
+                        double itemFromY = offscreenY - GetLayoutY(container);
+
+                        AnimateElement(container, 40 + ((itemCount - 1 - i) * 40), itemFromY, 0, true);
                     }
                 }
             }
@@ -231,8 +233,10 @@ namespace WannaDoWidget
                     var container = activeListBox.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
                     if (container != null)
                     {
+                        double itemToY = offscreenY - GetLayoutY(container);
+
                         // Stagger going upwards: top-most (i=0) leaves first
-                        AnimateElement(container, 60 + (i * 40), 0, offscreenY, false);
+                        AnimateElement(container, 60 + (i * 40), 0, itemToY, false);
                     }
                 }
             }
@@ -253,39 +257,54 @@ namespace WannaDoWidget
             timer.Start();
         }
 
+        private double GetLayoutY(FrameworkElement element)
+        {
+            var renderedPoint = element
+                .TransformToAncestor(this)
+                .Transform(new System.Windows.Point(0, 0));
+
+            // TransformToAncestor includes the element's previous RenderTransform.
+            // Remove that translation so repeated animations use the stable layout position.
+            double renderTranslationY = element.RenderTransform is TranslateTransform tt
+                ? tt.Y
+                : 0;
+
+            return renderedPoint.Y - renderTranslationY;
+        }
+
         private void AnimateElement(FrameworkElement element, double delayMs, double fromY, double toY, bool isShowing)
         {
-            // Ensure TranslateTransform exists
-            if (!(element.RenderTransform is TranslateTransform tt))
+            if (element.RenderTransform is not TranslateTransform tt)
             {
-                tt = new TranslateTransform(0, fromY);
+                tt = new TranslateTransform();
                 element.RenderTransform = tt;
             }
-            else
-            {
-                if (isShowing)
-                {
-                    tt.Y = fromY;
-                }
-            }
 
-            // Force opacity to 1 (disable fade in/out)
+            // Remove the previous animation clock before setting the next start position.
+            // Otherwise the completed hide animation still controls the effective Y value.
+            tt.BeginAnimation(TranslateTransform.YProperty, null);
+            tt.Y = fromY;
+
             element.Opacity = 1.0;
             element.BeginAnimation(UIElement.OpacityProperty, null);
 
-            var beginTime = TimeSpan.FromMilliseconds(delayMs);
-
-            // Y Animation
             var daY = new DoubleAnimation
             {
                 From = fromY,
                 To = toY,
                 Duration = new Duration(TimeSpan.FromMilliseconds(isShowing ? 600 : 580)),
-                BeginTime = beginTime,
+                BeginTime = TimeSpan.FromMilliseconds(delayMs),
                 EasingFunction = isShowing 
                     ? new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.15 } 
                     : (IEasingFunction)new ExponentialEase { EasingMode = EasingMode.EaseIn, Exponent = 4 }
             };
+
+            daY.Completed += (s, e) =>
+            {
+                tt.BeginAnimation(TranslateTransform.YProperty, null);
+                tt.Y = toY;
+            };
+
             tt.BeginAnimation(TranslateTransform.YProperty, daY);
         }
 

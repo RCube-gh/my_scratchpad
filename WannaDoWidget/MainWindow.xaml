@@ -106,6 +106,7 @@
         <Style TargetType="ListBoxItem">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="ClipToBounds" Value="False"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBoxItem">
@@ -116,17 +117,18 @@
         </Style>
         <!-- ListBox Style without ScrollViewer for zero clipping -->
         <Style x:Key="NoClipListBoxStyle" TargetType="ListBox">
+            <Setter Property="ClipToBounds" Value="False"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBox">
-                        <ItemsPresenter />
+                        <local:NoClipItemsPresenter ClipToBounds="False" />
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
             <Setter Property="ItemsPanel">
                 <Setter.Value>
                     <ItemsPanelTemplate>
-                        <StackPanel ClipToBounds="False" />
+                        <local:NoClipStackPanel ClipToBounds="False" />
                     </ItemsPanelTemplate>
                 </Setter.Value>
             </Setter>
@@ -208,9 +210,9 @@
         </Grid>
 
         <!-- 3. Lists Container -->
-        <Grid Grid.Row="2" ClipToBounds="False">
+        <local:NoClipGrid Grid.Row="2" ClipToBounds="False">
             <!-- 4a. TODO List -->
-            <ListBox x:Name="TodoListView" 
+            <local:NoClipListBox x:Name="TodoListView"
                       Style="{StaticResource NoClipListBoxStyle}"
                       Background="Transparent" 
                       BorderThickness="0" 
@@ -318,10 +320,10 @@
                         </Border>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
-            </ListBox>
+            </local:NoClipListBox>
 
             <!-- 4b. COMPLETED List -->
-            <ListBox x:Name="CompletedListView" 
+            <local:NoClipListBox x:Name="CompletedListView"
                       Style="{StaticResource NoClipListBoxStyle}"
                       Background="Transparent" 
                       BorderThickness="0" 
@@ -408,10 +410,10 @@
                         </Border>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
-            </ListBox>
+            </local:NoClipListBox>
 
             <!-- 4c. ARCHIVED / EXPIRED List -->
-            <ListBox x:Name="OverListView" 
+            <local:NoClipListBox x:Name="OverListView"
                       Style="{StaticResource NoClipListBoxStyle}"
                       Background="Transparent" 
                       BorderThickness="0" 
@@ -499,8 +501,8 @@
                         </Border>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
-            </ListBox>
-        </Grid>
+            </local:NoClipListBox>
+        </local:NoClipGrid>
 
         <!-- 4. Quick Input Area (Pill shaped, messaging app style) -->
         <Border x:Name="InputAreaBorder" Grid.Row="3" 
