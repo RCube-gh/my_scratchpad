@@ -2,6 +2,16 @@ using System.Windows.Media;
 
 namespace WannaDoWidget
 {
+    public class ToggleClipGrid : System.Windows.Controls.Grid
+    {
+        public bool IsLayoutClippingEnabled { get; set; } = true;
+
+        protected override Geometry? GetLayoutClip(System.Windows.Size layoutSlotSize)
+        {
+            return IsLayoutClippingEnabled ? base.GetLayoutClip(layoutSlotSize) : null;
+        }
+    }
+
     public class NoClipGrid : System.Windows.Controls.Grid
     {
         protected override Geometry? GetLayoutClip(System.Windows.Size layoutSlotSize) => null;

@@ -169,7 +169,7 @@ namespace WannaDoWidget
             {
                 // Force layout so container items exist
                 activeListBox.UpdateLayout();
-                DisableClipping(activeListBox);
+                SetScrollClipping(activeListBox, false);
                 itemCount = activeListBox.Items.Count;
             }
 
@@ -203,6 +203,10 @@ namespace WannaDoWidget
             timer.Interval = TimeSpan.FromMilliseconds(700 + (itemCount * 40));
             timer.Tick += (s, ev) =>
             {
+                if (activeListBox != null)
+                {
+                    SetScrollClipping(activeListBox, true);
+                }
                 _isAnimating = false;
                 timer.Stop();
             };
@@ -226,7 +230,7 @@ namespace WannaDoWidget
 
             if (activeListBox != null)
             {
-                DisableClipping(activeListBox);
+                SetScrollClipping(activeListBox, false);
                 for (int i = 0; i < count; i++)
                 {
                     var item = activeListBox.Items[i];
@@ -249,6 +253,10 @@ namespace WannaDoWidget
             timer.Interval = TimeSpan.FromMilliseconds(650 + count * 40);
             timer.Tick += (s, ev) =>
             {
+                if (activeListBox != null)
+                {
+                    SetScrollClipping(activeListBox, true);
+                }
                 this.Visibility = Visibility.Hidden;
                 _isShowing = false;
                 _isAnimating = false;
@@ -331,6 +339,19 @@ namespace WannaDoWidget
                 .Where(i => i.State == WannaDoState.Aborted || i.State == WannaDoState.Expired)
                 .OrderByDescending(i => i.CreatedAt)
                 .ToList();
+
+            TodoCountText.Text = TodoListView.Items.Count.ToString();
+            DoneCountText.Text = CompletedListView.Items.Count.ToString();
+            OverCountText.Text = OverListView.Items.Count.ToString();
+
+            Dispatcher.BeginInvoke(
+                DispatcherPriority.Loaded,
+                new Action(() =>
+                {
+                    UpdateScrollMetrics(TodoListView);
+                    UpdateScrollMetrics(CompletedListView);
+                    UpdateScrollMetrics(OverListView);
+                }));
         }
 
         private void AddButton_Click(object sender, RoutedEventArgs e)
@@ -456,8 +477,12 @@ namespace WannaDoWidget
             for (int i = 0; i < VisualTreeHelper.GetChildrenCount(depObj); i++)
             {
                 var child = VisualTreeHelper.GetChild(depObj, i);
-                if (child is T t && child is FrameworkElement fe && fe.Name == name)
+                if (child is T t &&
+                    (string.IsNullOrEmpty(name) ||
+                     child is FrameworkElement fe && fe.Name == name))
+                {
                     return t;
+                }
                 var childOfChild = FindVisualChild<T>(child, name);
                 if (childOfChild != null)
                     return childOfChild;
@@ -526,6 +551,10 @@ namespace WannaDoWidget
                 TodoListView.Visibility = (_activeTab == "Todo") ? Visibility.Visible : Visibility.Collapsed;
                 CompletedListView.Visibility = (_activeTab == "Completed") ? Visibility.Visible : Visibility.Collapsed;
                 OverListView.Visibility = (_activeTab == "Over") ? Visibility.Visible : Visibility.Collapsed;
+
+                Dispatcher.BeginInvoke(
+                    DispatcherPriority.Loaded,
+                    new Action(() => UpdateScrollMetrics(GetActiveListBox())));
             }
         }
 
@@ -547,16 +576,145 @@ namespace WannaDoWidget
             }
         }
 
-        private void DisableClipping(DependencyObject obj)
+        private void ListBox_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
-            if (obj is FrameworkElement fe)
+            if (sender is not System.Windows.Controls.ListBox listBox)
+                return;
+
+            UpdateScrollMetrics(listBox);
+
+            var scrollBar = FindVisualChild<System.Windows.Controls.Primitives.ScrollBar>(
+                listBox,
+                "ListScrollBar");
+            if (scrollBar == null || scrollBar.Maximum <= 0)
+                return;
+
+            double nextValue = scrollBar.Value - Math.Sign(e.Delta) * scrollBar.SmallChange;
+            scrollBar.Value = Math.Clamp(nextValue, scrollBar.Minimum, scrollBar.Maximum);
+            e.Handled = true;
+        }
+
+        private void ListScrollBar_ValueChanged(
+            object sender,
+            RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (sender is not System.Windows.Controls.Primitives.ScrollBar scrollBar)
+                return;
+
+            var listBox = FindVisualParent<System.Windows.Controls.ListBox>(scrollBar);
+            if (listBox == null)
+                return;
+
+            var itemsPanel = FindVisualChild<NoClipStackPanel>(listBox, string.Empty);
+            if (itemsPanel == null)
+                return;
+
+            if (itemsPanel.RenderTransform is not TranslateTransform transform)
             {
-                fe.ClipToBounds = false;
+                transform = new TranslateTransform();
+                itemsPanel.RenderTransform = transform;
             }
-            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(obj); i++)
+
+            transform.Y = -e.NewValue;
+            UpdateScrollIndicators(listBox, scrollBar);
+        }
+
+        private void UpdateScrollMetrics(System.Windows.Controls.ListBox listBox)
+        {
+            listBox.ApplyTemplate();
+            listBox.UpdateLayout();
+
+            var scrollBar = FindVisualChild<System.Windows.Controls.Primitives.ScrollBar>(
+                listBox,
+                "ListScrollBar");
+            var itemsPanel = FindVisualChild<NoClipStackPanel>(listBox, string.Empty);
+            if (scrollBar == null || itemsPanel == null)
+                return;
+
+            double contentHeight = Math.Max(
+                itemsPanel.ActualHeight,
+                itemsPanel.DesiredSize.Height);
+            double maximum = Math.Max(0, contentHeight - listBox.ActualHeight);
+            scrollBar.Maximum = maximum;
+            scrollBar.ViewportSize = listBox.ActualHeight;
+            scrollBar.Visibility = Visibility.Collapsed;
+
+            if (scrollBar.Value > maximum)
             {
-                DisableClipping(VisualTreeHelper.GetChild(obj, i));
+                scrollBar.Value = maximum;
             }
+
+            UpdateScrollIndicators(listBox, scrollBar);
+        }
+
+        private void UpdateScrollIndicators(
+            System.Windows.Controls.ListBox listBox,
+            System.Windows.Controls.Primitives.ScrollBar scrollBar)
+        {
+            var topIndicator = FindVisualChild<Border>(listBox, "TopScrollIndicator");
+            var bottomIndicator = FindVisualChild<Border>(listBox, "BottomScrollIndicator");
+            if (topIndicator == null || bottomIndicator == null)
+                return;
+
+            const double edgeTolerance = 0.5;
+            bool canScroll = scrollBar.Maximum > edgeTolerance;
+
+            topIndicator.Visibility =
+                canScroll && scrollBar.Value > edgeTolerance
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+
+            bottomIndicator.Visibility =
+                canScroll && scrollBar.Value < scrollBar.Maximum - edgeTolerance
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+        }
+
+        private void SetScrollClipping(System.Windows.Controls.ListBox listBox, bool enabled)
+        {
+            listBox.ApplyTemplate();
+
+            var viewport = FindVisualChild<ToggleClipGrid>(listBox, "ScrollViewport");
+            if (viewport != null)
+            {
+                viewport.IsLayoutClippingEnabled = enabled;
+                viewport.ClipToBounds = enabled;
+                viewport.InvalidateArrange();
+            }
+
+            var topIndicator = FindVisualChild<Border>(listBox, "TopScrollIndicator");
+            var bottomIndicator = FindVisualChild<Border>(listBox, "BottomScrollIndicator");
+
+            if (!enabled)
+            {
+                if (topIndicator != null)
+                    topIndicator.Visibility = Visibility.Collapsed;
+                if (bottomIndicator != null)
+                    bottomIndicator.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            var scrollBar = FindVisualChild<System.Windows.Controls.Primitives.ScrollBar>(
+                listBox,
+                "ListScrollBar");
+            if (scrollBar != null)
+            {
+                UpdateScrollIndicators(listBox, scrollBar);
+            }
+        }
+
+        private T? FindVisualParent<T>(DependencyObject child) where T : DependencyObject
+        {
+            DependencyObject? current = child;
+            while (current != null)
+            {
+                if (current is T parent)
+                    return parent;
+
+                current = VisualTreeHelper.GetParent(current);
+            }
+
+            return null;
         }
 
         public void ExitApp()

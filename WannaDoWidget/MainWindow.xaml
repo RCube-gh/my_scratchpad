@@ -20,6 +20,110 @@
         <local:StateToColorConverter x:Key="StateToColorConverter" />
         <local:StateTextConverter x:Key="StateTextConverter" />
 
+        <Style x:Key="CyberCalendarStyle" TargetType="Calendar">
+            <Setter Property="Background" Value="#FA102442"/>
+            <Setter Property="Foreground" Value="#F2FCFF"/>
+            <Setter Property="BorderBrush" Value="#00F0FF"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Style.Resources>
+                <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="#F4FCFF"/>
+                <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#F4FCFF"/>
+                <SolidColorBrush x:Key="{x:Static SystemColors.GrayTextBrushKey}" Color="#BFD8F2"/>
+
+                <Style TargetType="CalendarItem">
+                    <Setter Property="Foreground" Value="#F4FCFF"/>
+                    <Setter Property="Background" Value="#FA102442"/>
+                </Style>
+
+                <Style TargetType="TextBlock">
+                    <Setter Property="Foreground" Value="#F4FCFF"/>
+                </Style>
+
+                <Style TargetType="CalendarDayButton">
+                    <Setter Property="Foreground" Value="#F4FCFF"/>
+                    <Setter Property="Background" Value="#1400A8D8"/>
+                    <Setter Property="BorderBrush" Value="Transparent"/>
+                    <Setter Property="BorderThickness" Value="1"/>
+                    <Setter Property="Margin" Value="1"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="CalendarDayButton">
+                                <Border x:Name="DaySurface"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="3">
+                                    <TextBlock Text="{TemplateBinding Content}"
+                                               Foreground="{TemplateBinding Foreground}"
+                                               FontSize="11"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="DaySurface" Property="Background" Value="#5500B8E8"/>
+                                        <Setter TargetName="DaySurface" Property="BorderBrush" Value="#6600F0FF"/>
+                                        <Setter Property="Foreground" Value="#FFFFFF"/>
+                                    </Trigger>
+                                    <Trigger Property="IsToday" Value="True">
+                                        <Setter TargetName="DaySurface" Property="BorderBrush" Value="#FF0055"/>
+                                        <Setter Property="Foreground" Value="#FFB3C8"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="DaySurface" Property="Background" Value="#E00078A8"/>
+                                        <Setter TargetName="DaySurface" Property="BorderBrush" Value="#00F0FF"/>
+                                        <Setter Property="Foreground" Value="#FFFFFF"/>
+                                    </Trigger>
+                                    <Trigger Property="IsInactive" Value="True">
+                                        <Setter Property="Foreground" Value="#BFD8F2"/>
+                                        <Setter Property="Opacity" Value="0.78"/>
+                                    </Trigger>
+                                    <Trigger Property="IsBlackedOut" Value="True">
+                                        <Setter Property="Opacity" Value="0.2"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
+                <Style TargetType="CalendarButton">
+                    <Setter Property="Foreground" Value="#F4FCFF"/>
+                    <Setter Property="Background" Value="#1800A8D8"/>
+                    <Setter Property="Margin" Value="2"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="CalendarButton">
+                                <Border x:Name="MonthSurface"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="#334E77"
+                                        BorderThickness="1"
+                                        CornerRadius="4">
+                                    <TextBlock Text="{TemplateBinding Content}"
+                                               Foreground="{TemplateBinding Foreground}"
+                                               FontSize="11"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="MonthSurface" Property="Background" Value="#5500B8E8"/>
+                                        <Setter TargetName="MonthSurface" Property="BorderBrush" Value="#00F0FF"/>
+                                        <Setter Property="Foreground" Value="#FFFFFF"/>
+                                    </Trigger>
+                                    <Trigger Property="IsInactive" Value="True">
+                                        <Setter Property="Foreground" Value="#BFD8F2"/>
+                                        <Setter Property="Opacity" Value="0.78"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </Style.Resources>
+        </Style>
+
         <!-- Custom ScrollViewer Style -->
         <Style TargetType="ScrollBar">
             <Setter Property="Width" Value="6"/>
@@ -28,7 +132,14 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="ScrollBar">
                         <Grid x:Name="Bg" SnapsToDevicePixels="true" Background="Transparent">
-                            <Track x:Name="PART_Track" IsDirectionReversed="true" IsEnabled="{TemplateBinding IsEnabled}">
+                            <Track x:Name="PART_Track"
+                                   Orientation="{TemplateBinding Orientation}"
+                                   Minimum="{TemplateBinding Minimum}"
+                                   Maximum="{TemplateBinding Maximum}"
+                                   Value="{Binding Value, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                   ViewportSize="{TemplateBinding ViewportSize}"
+                                   IsDirectionReversed="true"
+                                   IsEnabled="{TemplateBinding IsEnabled}">
                                 <Track.Thumb>
                                     <Thumb x:Name="Thumb" Background="#3300F0FF" Margin="0" MinHeight="20">
                                         <Thumb.Template>
@@ -115,13 +226,100 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <Style x:Key="HudTabButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="Foreground" Value="#8096B8"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="#334E77"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Border x:Name="TabSurface"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"/>
+                            </Border>
+                            <Border x:Name="ActiveLine"
+                                    Height="2"
+                                    Margin="12,0"
+                                    VerticalAlignment="Bottom"
+                                    Background="#00F0FF"
+                                    Opacity="0"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="TabSurface" Property="Background" Value="#1600F0FF"/>
+                                <Setter Property="Foreground" Value="#C8F9FF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="TabSurface" Property="Background" Value="#2600F0FF"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="TabSurface" Property="Background" Value="#280078A8"/>
+                                <Setter TargetName="ActiveLine" Property="Opacity" Value="1"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                <Setter Property="Opacity" Value="1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- ListBox Style without ScrollViewer for zero clipping -->
         <Style x:Key="NoClipListBoxStyle" TargetType="ListBox">
             <Setter Property="ClipToBounds" Value="False"/>
+            <EventSetter Event="PreviewMouseWheel" Handler="ListBox_PreviewMouseWheel"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBox">
-                        <local:NoClipItemsPresenter ClipToBounds="False" />
+                        <local:ToggleClipGrid x:Name="ScrollViewport"
+                                              ClipToBounds="True">
+                            <local:NoClipItemsPresenter x:Name="ListItemsPresenter"
+                                                        ClipToBounds="False" />
+                            <ScrollBar x:Name="ListScrollBar"
+                                       HorizontalAlignment="Right"
+                                       Orientation="Vertical"
+                                       Minimum="0"
+                                       SmallChange="60"
+                                       LargeChange="180"
+                                       Visibility="Collapsed"
+                                       ValueChanged="ListScrollBar_ValueChanged" />
+
+                            <Border x:Name="TopScrollIndicator"
+                                    Height="36"
+                                    VerticalAlignment="Top"
+                                    IsHitTestVisible="False"
+                                    Visibility="Collapsed">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                        <GradientStop Color="#5500F0FF" Offset="0"/>
+                                        <GradientStop Color="#0000F0FF" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                            </Border>
+
+                            <Border x:Name="BottomScrollIndicator"
+                                    Height="36"
+                                    VerticalAlignment="Bottom"
+                                    IsHitTestVisible="False"
+                                    Visibility="Collapsed">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                        <GradientStop Color="#0000F0FF" Offset="0"/>
+                                        <GradientStop Color="#5500F0FF" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                            </Border>
+                        </local:ToggleClipGrid>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -197,16 +395,62 @@
             <Grid.RenderTransform>
                 <TranslateTransform Y="-50"/>
             </Grid.RenderTransform>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
 
-            <!-- Styled Tab Buttons with Cyber accents -->
-            <Button x:Name="TabTodoBtn" Grid.Column="0" Content="To Do" Click="TabBtn_Click" Tag="Todo" IsEnabled="False" Margin="0,0,4,0"/>
-            <Button x:Name="TabDoneBtn" Grid.Column="1" Content="Done" Click="TabBtn_Click" Tag="Completed" Margin="2,0,2,0"/>
-            <Button x:Name="TabOverBtn" Grid.Column="2" Content="Over" Click="TabBtn_Click" Tag="Over" Margin="4,0,0,0"/>
+            <Border Background="#B5050C1E"
+                    BorderBrush="#334E77"
+                    BorderThickness="1"
+                    CornerRadius="6">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="1" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="1" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Button x:Name="TabTodoBtn"
+                            Grid.Column="0"
+                            Style="{StaticResource HudTabButtonStyle}"
+                            Click="TabBtn_Click"
+                            Tag="Todo"
+                            IsEnabled="False">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="6" Height="6" Fill="#00F0FF" Margin="0,0,7,0"/>
+                            <TextBlock Text="ACTIVE" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                            <TextBlock x:Name="TodoCountText" Text="0" Foreground="#00F0FF" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Border Grid.Column="1" Background="#334E77" Margin="0,8"/>
+
+                    <Button x:Name="TabDoneBtn"
+                            Grid.Column="2"
+                            Style="{StaticResource HudTabButtonStyle}"
+                            Click="TabBtn_Click"
+                            Tag="Completed">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="6" Height="6" Fill="#00FF66" Margin="0,0,7,0"/>
+                            <TextBlock Text="DONE" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                            <TextBlock x:Name="DoneCountText" Text="0" Foreground="#00FF66" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Border Grid.Column="3" Background="#334E77" Margin="0,8"/>
+
+                    <Button x:Name="TabOverBtn"
+                            Grid.Column="4"
+                            Style="{StaticResource HudTabButtonStyle}"
+                            Click="TabBtn_Click"
+                            Tag="Over">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="6" Height="6" Fill="#FF0055" Margin="0,0,7,0"/>
+                            <TextBlock Text="OVER" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                            <TextBlock x:Name="OverCountText" Text="0" Foreground="#FF557F" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Border>
         </Grid>
 
         <!-- 3. Lists Container -->
@@ -252,14 +496,12 @@
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        
-                                        <!-- Created Time -->
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="[SYS_INIT " FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
-                                            <TextBlock Text="{Binding CreatedAt, Converter={StaticResource DateFormatConverter}}" FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
-                                            <TextBlock Text="]" FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
-                                        </StackPanel>
-                                        
+
+                                        <TextBlock Text="{Binding CreatedAt, Converter={StaticResource DateFormatConverter}}"
+                                                   FontSize="10"
+                                                   Foreground="#5588FF"
+                                                   FontWeight="Bold"/>
+
                                         <!-- Limit Badge -->
                                         <StackPanel Grid.Column="1" Orientation="Horizontal" Visibility="{Binding DueDate, Converter={StaticResource NullToVisibilityConverter}}">
                                             <TextBlock Text="[LIMIT " FontSize="10" Foreground="#00F0FF" FontWeight="Bold"/>
@@ -366,13 +608,11 @@
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        
-                                        <!-- Created Time -->
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="[SYS_INIT " FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
-                                            <TextBlock Text="{Binding CreatedAt, Converter={StaticResource DateFormatConverter}}" FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
-                                            <TextBlock Text="]" FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
-                                        </StackPanel>
+
+                                        <TextBlock Text="{Binding CreatedAt, Converter={StaticResource DateFormatConverter}}"
+                                                   FontSize="10"
+                                                   Foreground="#5588FF"
+                                                   FontWeight="Bold"/>
 
                                         <StackPanel Grid.Column="1" Orientation="Horizontal">
                                             <TextBlock Text="[MISSION_ACCOMPLISHED]" FontSize="10" Foreground="#00FF66" FontWeight="Bold"/>
@@ -455,14 +695,12 @@
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        
-                                        <!-- Created Time -->
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="[SYS_INIT " FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
-                                            <TextBlock Text="{Binding CreatedAt, Converter={StaticResource DateFormatConverter}}" FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
-                                            <TextBlock Text="]" FontSize="10" Foreground="#5588FF" FontWeight="Bold"/>
-                                        </StackPanel>
-                                        
+
+                                        <TextBlock Text="{Binding CreatedAt, Converter={StaticResource DateFormatConverter}}"
+                                                   FontSize="10"
+                                                   Foreground="#5588FF"
+                                                   FontWeight="Bold"/>
+
                                         <StackPanel Grid.Column="1" Orientation="Horizontal">
                                             <TextBlock Text="[STATUS: " FontSize="10" Foreground="#FF0055" FontWeight="Bold"/>
                                             <TextBlock Text="{Binding State, Converter={StaticResource StateTextConverter}}" FontSize="10" Foreground="#FF0055" FontWeight="Bold"/>
@@ -565,33 +803,36 @@
                                 Background="Transparent"
                                 BorderThickness="0"
                                 VerticalAlignment="Center"
+                                CalendarStyle="{StaticResource CyberCalendarStyle}"
                                 SelectedDateChanged="DueDatePicker_SelectedDateChanged">
                         <DatePicker.Resources>
                             <!-- Hide default textbox -->
                             <Style TargetType="DatePickerTextBox">
                                 <Setter Property="Visibility" Value="Collapsed"/>
                             </Style>
-                            <!-- Override Dropdown button to fit cyber theme -->
-                            <Style TargetType="Button">
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="Button">
-                                            <Border x:Name="border" Background="Transparent" CornerRadius="4" BorderBrush="#0078FF" BorderThickness="1" Width="28" Height="28">
-                                                <TextBlock x:Name="iconText" Text="📅" Foreground="#0078FF" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="border" Property="Background" Value="#2200F0FF"/>
-                                                    <Setter TargetName="border" Property="BorderBrush" Value="#00F0FF"/>
-                                                    <Setter TargetName="iconText" Property="Foreground" Value="#00F0FF"/>
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
                         </DatePicker.Resources>
                     </DatePicker>
+
+                    <!-- Opaque overlay hides the theme-provided emoji while clicks pass through. -->
+                    <Border Background="#FF050C1E"
+                            BorderBrush="#0078FF"
+                            BorderThickness="1"
+                            CornerRadius="5"
+                            Width="28"
+                            Height="28"
+                            IsHitTestVisible="False">
+                        <Viewbox Width="15" Height="15">
+                            <Grid Width="16" Height="16">
+                                <Path Stroke="#00B8E8"
+                                      StrokeThickness="1.4"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round"
+                                      Data="M 2.5,4.5 L 13.5,4.5 L 13.5,13.5 L 2.5,13.5 Z M 2.5,7 L 13.5,7 M 5,2.5 L 5,5.5 M 11,2.5 L 11,5.5 M 5,9.5 L 6.5,9.5 M 9.5,9.5 L 11,9.5 M 5,11.5 L 6.5,11.5 M 9.5,11.5 L 11,11.5"/>
+                            </Grid>
+                        </Viewbox>
+                    </Border>
+
                     <!-- Small indicator dot showing that a date is selected -->
                     <Border x:Name="DateActiveBadge"
                             Background="#00F0FF"
