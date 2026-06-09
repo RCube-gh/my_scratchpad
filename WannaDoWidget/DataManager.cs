@@ -67,12 +67,13 @@ namespace WannaDoWidget
             }
         }
 
-        public void AddItem(string memo, DateTime? dueDate)
+        public void AddItem(string memo, DateTime? dueDate, bool dueTimeSpecified = false)
         {
             var item = new WannaDoItem
             {
                 Memo = memo,
                 DueDate = dueDate,
+                DueTimeSpecified = dueTimeSpecified,
                 State = WannaDoState.Todo
             };
             Items.Add(item);

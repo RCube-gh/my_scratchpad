@@ -31,14 +31,18 @@ namespace WannaDoWidget
 
         private string _activeTab = "Todo";
         private readonly DispatcherTimer _expiryTimer;
+        private int _selectedDueHour = 23;
+        private int _selectedDueMinute = 59;
 
         public MainWindow()
         {
             InitializeComponent();
 
-            // Set up background expiry timer (checks every 5 minutes)
+            ResetTimeSelection();
+
+            // Keep time-specific deadlines reasonably precise.
             _expiryTimer = new DispatcherTimer();
-            _expiryTimer.Interval = TimeSpan.FromMinutes(5);
+            _expiryTimer.Interval = TimeSpan.FromSeconds(30);
             _expiryTimer.Tick += (s, e) => { DataManager.CheckAllExpirations(); };
             _expiryTimer.Start();
 
@@ -101,7 +105,7 @@ namespace WannaDoWidget
                 catch (Exception ex)
                 {
                     System.IO.File.WriteAllText("crash.txt", ex.ToString());
-                    System.Windows.MessageBox.Show(ex.ToString(), "Wanna Do Widget Crash");
+                    System.Windows.MessageBox.Show(ex.ToString(), "SCRATCH//PAD Crash");
                 }
                 handled = true;
             }
@@ -112,7 +116,7 @@ namespace WannaDoWidget
         {
             _notifyIcon = new System.Windows.Forms.NotifyIcon();
             _notifyIcon.Icon = System.Drawing.SystemIcons.Application;
-            _notifyIcon.Text = "Wanna Do Widget";
+            _notifyIcon.Text = "SCRATCH//PAD";
             _notifyIcon.Visible = true;
             _notifyIcon.Click += (s, e) => { ToggleVisibility(); };
 
@@ -323,6 +327,10 @@ namespace WannaDoWidget
 
         private void RefreshLists()
         {
+            StopListAnimations(TodoListView);
+            StopListAnimations(CompletedListView);
+            StopListAnimations(OverListView);
+
             var items = DataManager.Items;
 
             TodoListView.ItemsSource = items
@@ -376,13 +384,16 @@ namespace WannaDoWidget
             string memo = MemoTextBox.Text.Trim();
             if (string.IsNullOrEmpty(memo)) return;
 
-            DateTime? dueDate = DueDatePicker.SelectedDate;
+            DateTime? dueDate = DueDatePicker.SelectedDate?.Date
+                .AddHours(_selectedDueHour)
+                .AddMinutes(_selectedDueMinute);
 
-            DataManager.AddItem(memo, dueDate);
+            DataManager.AddItem(memo, dueDate, dueDate.HasValue);
 
             // Clear inputs
             MemoTextBox.Text = string.Empty;
             DueDatePicker.SelectedDate = null;
+            ResetTimeSelection();
         }
 
         private void DueDatePicker_SelectedDateChanged(object? sender, SelectionChangedEventArgs e)
@@ -395,11 +406,78 @@ namespace WannaDoWidget
             }
         }
 
+        private void TimeButton_Click(object sender, RoutedEventArgs e)
+        {
+            UpdateTimeText();
+            TimePickerPopup.IsOpen = !TimePickerPopup.IsOpen;
+        }
+
+        private void ApplyTimeButton_Click(object sender, RoutedEventArgs e)
+        {
+            UpdateTimeText();
+            TimePickerPopup.IsOpen = false;
+        }
+
+        private void TimeStepButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not FrameworkElement element ||
+                element.Tag is not string command)
+            {
+                return;
+            }
+
+            switch (command)
+            {
+                case "HourUp":
+                    _selectedDueHour = (_selectedDueHour + 1) % 24;
+                    break;
+                case "HourDown":
+                    _selectedDueHour = (_selectedDueHour + 23) % 24;
+                    break;
+                case "MinuteUp":
+                    _selectedDueMinute = (_selectedDueMinute + 1) % 60;
+                    break;
+                case "MinuteDown":
+                    _selectedDueMinute = (_selectedDueMinute + 59) % 60;
+                    break;
+            }
+
+            UpdateTimeText();
+        }
+
+        private void ResetTimeSelection()
+        {
+            _selectedDueHour = 23;
+            _selectedDueMinute = 59;
+
+            UpdateTimeText();
+        }
+
+        private void UpdateTimeText()
+        {
+            if (TimeButton != null)
+            {
+                TimeButton.Content = $"{_selectedDueHour:00}:{_selectedDueMinute:00}";
+            }
+
+            if (TimeHourText != null)
+            {
+                TimeHourText.Text = _selectedDueHour.ToString("00");
+            }
+
+            if (TimeMinuteText != null)
+            {
+                TimeMinuteText.Text = _selectedDueMinute.ToString("00");
+            }
+        }
+
         private void CompleteButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is FrameworkElement element && element.Tag is string id)
             {
-                DataManager.UpdateItemState(id, WannaDoState.Completed);
+                e.Handled = true;
+                RunAfterInput(() =>
+                    DataManager.UpdateItemState(id, WannaDoState.Completed));
             }
         }
 
@@ -407,7 +485,9 @@ namespace WannaDoWidget
         {
             if (sender is FrameworkElement element && element.Tag is string id)
             {
-                DataManager.UpdateItemState(id, WannaDoState.Aborted);
+                e.Handled = true;
+                RunAfterInput(() =>
+                    DataManager.UpdateItemState(id, WannaDoState.Aborted));
             }
         }
 
@@ -415,7 +495,60 @@ namespace WannaDoWidget
         {
             if (sender is FrameworkElement element && element.Tag is string id)
             {
-                DataManager.DeleteItem(id);
+                e.Handled = true;
+                RunAfterInput(() => DataManager.DeleteItem(id));
+            }
+        }
+
+        private void RunAfterInput(Action action)
+        {
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, action);
+        }
+
+        private void StopListAnimations(System.Windows.Controls.ListBox listBox)
+        {
+            for (int i = 0; i < listBox.Items.Count; i++)
+            {
+                var item = listBox.Items[i];
+                if (listBox.ItemContainerGenerator.ContainerFromItem(item)
+                    is not FrameworkElement container)
+                {
+                    continue;
+                }
+
+                container.BeginAnimation(UIElement.OpacityProperty, null);
+
+                if (container.RenderTransform is TranslateTransform transform)
+                {
+                    double currentY = transform.Y;
+                    transform.BeginAnimation(TranslateTransform.YProperty, null);
+                    transform.Y = double.IsFinite(currentY) ? currentY : 0;
+                }
+
+                var actionPanel = FindVisualChild<Border>(container, "ActionPanel");
+                if (actionPanel == null)
+                {
+                    continue;
+                }
+
+                actionPanel.BeginAnimation(UIElement.OpacityProperty, null);
+
+                var panelTransform = GetMutableActionPanelTransform(
+                    actionPanel,
+                    actionPanel.Width);
+                panelTransform.BeginAnimation(
+                    TranslateTransform.XProperty,
+                    null);
+
+                if (!double.IsFinite(panelTransform.X))
+                {
+                    panelTransform.X = actionPanel.Width;
+                }
+
+                if (!double.IsFinite(actionPanel.Opacity))
+                {
+                    actionPanel.Opacity = 0;
+                }
             }
         }
 
@@ -431,33 +564,107 @@ namespace WannaDoWidget
                 var actionPanel = FindVisualChild<Border>(cardBorder, "ActionPanel");
                 if (actionPanel != null)
                 {
-                    double maxWidth = double.Parse(actionPanel.Tag?.ToString() ?? "60");
-                    bool isOpened = actionPanel.Width > 0;
-                    double targetWidth = isOpened ? 0 : maxWidth;
-                    double targetOpacity = isOpened ? 0 : 1;
+                    bool isOpened = actionPanel.IsHitTestVisible;
 
                     if (!isOpened)
                     {
                         CloseAllActionPanelsExcept(cardBorder);
                     }
 
-                    var daW = new DoubleAnimation
-                    {
-                        To = targetWidth,
-                        Duration = TimeSpan.FromMilliseconds(200),
-                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-                    };
-                    actionPanel.BeginAnimation(FrameworkElement.WidthProperty, daW);
-
-                    var daO = new DoubleAnimation
-                    {
-                        To = targetOpacity,
-                        Duration = TimeSpan.FromMilliseconds(150),
-                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-                    };
-                    actionPanel.BeginAnimation(UIElement.OpacityProperty, daO);
+                    AnimateActionPanel(actionPanel, !isOpened);
                 }
             }
+        }
+
+        private void AnimateActionPanel(Border actionPanel, bool open)
+        {
+            double panelWidth = double.TryParse(
+                actionPanel.Tag?.ToString(),
+                out double taggedWidth)
+                    ? taggedWidth
+                    : 60;
+
+            var transform = GetMutableActionPanelTransform(
+                actionPanel,
+                panelWidth);
+
+            double currentX = transform.X;
+            double currentOpacity = actionPanel.Opacity;
+
+            transform.BeginAnimation(TranslateTransform.XProperty, null);
+            actionPanel.BeginAnimation(UIElement.OpacityProperty, null);
+
+            transform.X = double.IsFinite(currentX)
+                ? currentX
+                : panelWidth;
+            actionPanel.Opacity = double.IsFinite(currentOpacity)
+                ? currentOpacity
+                : 0;
+            actionPanel.IsHitTestVisible = open;
+
+            var slideAnimation = new DoubleAnimation
+            {
+                From = transform.X,
+                To = open ? 0 : panelWidth,
+                Duration = TimeSpan.FromMilliseconds(220),
+                EasingFunction = new CubicEase
+                {
+                    EasingMode = EasingMode.EaseOut
+                },
+                FillBehavior = FillBehavior.Stop
+            };
+
+            var fadeAnimation = new DoubleAnimation
+            {
+                From = actionPanel.Opacity,
+                To = open ? 1 : 0,
+                Duration = TimeSpan.FromMilliseconds(160),
+                EasingFunction = new CubicEase
+                {
+                    EasingMode = EasingMode.EaseOut
+                },
+                FillBehavior = FillBehavior.Stop
+            };
+
+            slideAnimation.Completed += (s, e) =>
+            {
+                transform.BeginAnimation(TranslateTransform.XProperty, null);
+                transform.X = open ? 0 : panelWidth;
+            };
+
+            fadeAnimation.Completed += (s, e) =>
+            {
+                actionPanel.BeginAnimation(UIElement.OpacityProperty, null);
+                actionPanel.Opacity = open ? 1 : 0;
+            };
+
+            transform.BeginAnimation(
+                TranslateTransform.XProperty,
+                slideAnimation);
+            actionPanel.BeginAnimation(
+                UIElement.OpacityProperty,
+                fadeAnimation);
+        }
+
+        private TranslateTransform GetMutableActionPanelTransform(
+            Border actionPanel,
+            double initialX)
+        {
+            if (actionPanel.RenderTransform is TranslateTransform existing)
+            {
+                if (!existing.IsFrozen)
+                {
+                    return existing;
+                }
+
+                var clone = existing.CloneCurrentValue();
+                actionPanel.RenderTransform = clone;
+                return clone;
+            }
+
+            var transform = new TranslateTransform(initialX, 0);
+            actionPanel.RenderTransform = transform;
+            return transform;
         }
 
         private bool IsInActionPanel(DependencyObject obj)
@@ -510,26 +717,10 @@ namespace WannaDoWidget
                     if (cardBorder != null && cardBorder != exceptionCard)
                     {
                         var actionPanel = FindVisualChild<Border>(cardBorder, "ActionPanel");
-                        if (actionPanel != null)
+                        if (actionPanel != null &&
+                            actionPanel.IsHitTestVisible)
                         {
-                            if (actionPanel.Width > 0 || actionPanel.ActualWidth > 0)
-                            {
-                                var daW = new DoubleAnimation
-                                {
-                                    To = 0,
-                                    Duration = TimeSpan.FromMilliseconds(200),
-                                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-                                };
-                                actionPanel.BeginAnimation(FrameworkElement.WidthProperty, daW);
-
-                                var daO = new DoubleAnimation
-                                {
-                                    To = 0,
-                                    Duration = TimeSpan.FromMilliseconds(150),
-                                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-                                };
-                                actionPanel.BeginAnimation(UIElement.OpacityProperty, daO);
-                            }
+                            AnimateActionPanel(actionPanel, false);
                         }
                     }
                 }
@@ -556,11 +747,6 @@ namespace WannaDoWidget
                     DispatcherPriority.Loaded,
                     new Action(() => UpdateScrollMetrics(GetActiveListBox())));
             }
-        }
-
-        private void CloseButton_Click(object sender, RoutedEventArgs e)
-        {
-            HideWidget();
         }
 
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
