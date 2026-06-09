@@ -313,6 +313,13 @@ namespace WannaDoWidget
                 element.RenderTransform = tt;
             }
 
+            var previousCacheMode = element.CacheMode;
+            element.CacheMode = new BitmapCache
+            {
+                EnableClearType = true,
+                RenderAtScale = 1.0
+            };
+
             // Remove the previous animation clock before setting the next start position.
             // Otherwise the completed hide animation still controls the effective Y value.
             tt.BeginAnimation(TranslateTransform.YProperty, null);
@@ -336,6 +343,7 @@ namespace WannaDoWidget
             {
                 tt.BeginAnimation(TranslateTransform.YProperty, null);
                 tt.Y = toY;
+                element.CacheMode = previousCacheMode;
             };
 
             tt.BeginAnimation(TranslateTransform.YProperty, daY);
@@ -538,6 +546,7 @@ namespace WannaDoWidget
                 }
 
                 container.BeginAnimation(UIElement.OpacityProperty, null);
+                container.CacheMode = null;
 
                 if (container.RenderTransform is TranslateTransform transform)
                 {
