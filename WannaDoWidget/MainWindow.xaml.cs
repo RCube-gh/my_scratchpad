@@ -213,6 +213,7 @@ namespace WannaDoWidget
                 }
                 _isAnimating = false;
                 timer.Stop();
+                FocusMemoInput();
             };
             timer.Start();
         }
@@ -221,6 +222,8 @@ namespace WannaDoWidget
         {
             if (!_isShowing || _isAnimating) return;
             _isAnimating = true;
+            Keyboard.ClearFocus();
+            FocusManager.SetFocusedElement(this, null);
 
             var activeListBox = GetActiveListBox();
             int count = activeListBox?.Items.Count ?? 0;
@@ -267,6 +270,24 @@ namespace WannaDoWidget
                 timer.Stop();
             };
             timer.Start();
+        }
+
+        private void FocusMemoInput()
+        {
+            Dispatcher.BeginInvoke(
+                DispatcherPriority.Input,
+                new Action(() =>
+                {
+                    if (!_isShowing || _isAnimating)
+                    {
+                        return;
+                    }
+
+                    Activate();
+                    MemoTextBox.Focus();
+                    Keyboard.Focus(MemoTextBox);
+                    MemoTextBox.CaretIndex = MemoTextBox.Text.Length;
+                }));
         }
 
         private double GetLayoutY(FrameworkElement element)
@@ -371,7 +392,7 @@ namespace WannaDoWidget
         {
             if (e.Key == Key.Enter)
             {
-                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
                 {
                     AddNewItem();
                     e.Handled = true;
