@@ -57,7 +57,7 @@ namespace WannaDoWidget
             // Position initially
             PositionWindow();
 
-            // Register HotKey (Ctrl + Alt + S)
+            // Register HotKey (Ctrl + Alt + P)
             RegisterGlobalHotKey();
 
             // Setup System Tray Icon
@@ -89,8 +89,8 @@ namespace WannaDoWidget
             _hwndSource.AddHook(HwndHook);
 
             // Ctrl = 0x0002, Alt = 0x0001
-            // S = 0x53
-            RegisterHotKey(helper.Handle, HOTKEY_ID, 0x0002 | 0x0001, 0x53);
+            // P = 0x50
+            RegisterHotKey(helper.Handle, HOTKEY_ID, 0x0002 | 0x0001, 0x50);
         }
 
         private IntPtr HwndHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
